@@ -102,13 +102,21 @@ async function loadClientsData() {
   if (cityFilter) queryParams.City = encodeURIComponent(cityFilter);
 
   try {
+    const userLoggedResponse = await fetchData("GetLoggedUserId");
+    if(!userLoggedResponse || !userLoggedResponse.success || !userLoggedResponse.username){
+      showToast("Error", "No se pudo obtener el nombre del usuario logueado", "error");
+      return;
+    }
+    const username = userLoggedResponse.username;
     const data = await fetchData("Clients", queryParams);
     const clients = logApiResponse("Clients", data);
 
       if (clients && clients.length > 0) {
 
         // Preparar datos para la tabla
-        const tableData = clients.map((client) => {
+        const tableData = clients.filter((client) => {
+          return username.trim().toLowerCase().includes(client.SalespersonName.toLowerCase().trim());
+        }).map((client) => {
 
           // Buscar el nombre de la categoría
           const category = clientCategories.find((c) => c.CategoryID === client.Category);

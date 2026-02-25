@@ -5,11 +5,104 @@ let productDepartments = []
 let productCategories = []
 let productsMaintenanceTable
 let productsData = []
+let stockBackend2Cache = {};
 // Variable global para guardar los datos de movimiento por mes
 let monthlyData = [];
+let companyName = "";
+let username = "";
+const extraBackends = window.APP_CONFIG.extra_backends || [];
+
 
 // Variable global para guardar la instancia del gráfico y poder destruirla/actualizarla
 let productChart = null;
+
+async function getCompanyNameFromApi(url) {
+    const data = await fetchDataUseURL(url,"InfoCompany");
+    if(data.length > 0){
+        return data[0].Name || "Otra Tienda";
+    }
+    return "Otra Tienda";
+}
+function updateStockCell(productCode){
+
+  let table = $("#productsMaintenanceTable").DataTable();
+
+  table.rows().every(function(){
+
+      let rowData = this.data();
+
+      if(String(rowData[0]).trim() === String(productCode).trim()){
+
+         let mainStock = rowData[5].split("<br>")[0];
+
+         let secondStock = stockBackend2Cache[productCode] || 0;
+
+         let newRow = [...rowData]; // 🔥 copia segura
+
+         newRow[5] =
+           mainStock +
+           "<br>" +
+           stockToHtml(
+             safeToLocaleString(secondStock),
+             stockBackend2Cache["companyName"]
+           );
+
+         this.data(newRow); // actualizar fila segura
+      }
+
+  });
+
+  table.draw(false);
+
+}
+async function loadSecondStockParallel(products) {
+
+  try {
+
+    // Si ya tenemos datos en cache no volver a consultar
+    if (Object.keys(stockBackend2Cache).length > 0) {
+
+      products.forEach(p => updateStockCell(p.ProductCode));
+      return;
+    }
+
+    // 🔹 UNA SOLA CONSULTA
+    const data = await fetchDataUseURL(extraBackends[0].ip+":"+extraBackends[0].port,"GetAllProducts");
+    const companyName = await getCompanyNameFromApi(extraBackends[0].ip+":"+extraBackends[0].port);
+    stockBackend2Cache["companyName"] = companyName;
+    /*
+    Ejemplo esperado:
+
+    [
+      { ProductCode: "P001", Stock: 10 },
+      { ProductCode: "P002", Stock: 5 },
+      { ProductCode: "P003", Stock: 22 }
+    ]
+    */
+
+    // Guardar en cache
+    data.forEach(item => {
+
+      stockBackend2Cache[item.ProductCode] = item.CurrentStock || 0;
+
+    });
+
+     
+    // Actualizar tabla
+    products.forEach(product => {
+      
+      updateStockCell(product.ProductCode);
+
+    });
+    
+  }
+  catch(e){
+
+    console.error("Error cargando stocks backend2:", e);
+
+  }
+
+}
 
 // Function to format currency
 function formatCurrency(number) {
@@ -73,7 +166,6 @@ function logApiResponse(endpoint, data) {
 
 // Function to load products from the API with enhanced debugging
 async function loadProducts() {
-
   await loadProductDepartments();
   await loadProductCategories();
   await loadProductsData();
@@ -84,8 +176,17 @@ async function loadProductsWithFilters() {
   await filterProductsData();
   
 }
+function stockToHtml(stock, companyName = "Fernnandez Muebles") {
+  
+  return `${stock} - ${companyName}`;
+}
 async function filterProductsData() {
-
+  if(companyName == ""){
+    const userLoggedIn = await fetchData("GetLoggedUserId");
+    companyName= userLoggedIn.companyName
+    username = userLoggedIn.username
+  }
+  console.log("Applying filters to products data with companyName:", companyName)
 
   // Obtener valores de filtros
   const codeFilter = document.getElementById("productCodeFilter")
@@ -114,6 +215,7 @@ console.log("Filter values:", {
     category: categoryFilter,
   })
   try {
+    console.log("Filtering products with filters:")
     let products = productsData.slice() // Copy the global products data
     products = products.filter(p => {
       const matchesCode = !codeFilter || p.ProductCode.toLowerCase().trim() == codeFilter.toLowerCase().trim();
@@ -123,7 +225,7 @@ console.log("Filter values:", {
       return matchesCode && matchesName && matchesDepartment && matchesCategory;
     });
     if (products && products.length > 0) {
-
+      console.log(`Found ${products.length} products after filtering.`)
       // Preparar datos para la tabla
       const tableData = products.map((product) => {
         // Log each product for debugging
@@ -151,11 +253,11 @@ console.log("Filter values:", {
           product.BarCode || "",
           formatCurrency(product.Price || 0),
           formatCurrency(product.Cost || 0),
-          safeToLocaleString(product.CurrentStock),
+          stockToHtml(safeToLocaleString(product.CurrentStock),companyName) + "<br>" +"Cargando...",
           departmentName, // Mostrar el nombre del departamento en lugar del ID
           categoryName, // Mostrar el nombre de la categoría en lugar del ID
-          recibirInventario + tagButton + deleteButton, //+ editButton
-          pre_ordenButton
+          // recibirInventario + tagButton + deleteButton, //+ editButton
+          // pre_ordenButton
         ]
       })
 
@@ -195,17 +297,21 @@ console.log("Filter values:", {
           { title: "Código de Barras", data: 2, width: "10%", className: "editable" },
           { title: "Precio", data: 3, width: "8%", className: "editable" },
           { title: "Costo", data: 4, width: "8%", className: "editable" },
-          { title: "Stock", data: 5, width: "7%", },
+          { title: "Stock", data: 5, width: "20%", },
           { title: "Departamento", data: 6, width: "12%" },
           { title: "Categoría", data: 7, width: "12%" },
-          { title: "Acciones", data: 8, width: "10%", className: "text-center", orderable: false },
-          { title: "Movimiento", data: 9, width: "8%", className: "text-center", orderable: false },
+          // { title: "Acciones", data: 8, width: "10%", className: "text-center", orderable: false },
+          // { title: "Movimiento", data: 9, width: "8%", className: "text-center", orderable: false },
         ]
 
         // Inicializar o actualizar la tabla
         if ($.fn.DataTable.isDataTable("#productsMaintenanceTable")) {
 
           $("#productsMaintenanceTable").DataTable().clear().rows.add(tableData).draw()
+          setTimeout(() => {
+            
+              loadSecondStockParallel(products);
+            }, 0);
         } else {
 
           productsMaintenanceTable = $("#productsMaintenanceTable").DataTable({
@@ -218,7 +324,7 @@ console.log("Filter values:", {
             autoWidth: false, // Disable auto width calculation
             columnDefs: [
               { responsivePriority: 1, targets: [0, 1] }, // These columns are most important
-              { responsivePriority: 2, targets: [3, 8] }, // These columns are next important
+              { responsivePriority: 2, targets: [3, 7] }, // These columns are next important
             ],
             dom:
               '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
@@ -229,7 +335,11 @@ console.log("Filter values:", {
               $(this).closest(".dataTables_wrapper").addClass("card-body p-0")
             },
           })
-
+          showToast("Éxito", "Productos filtrados correctamente", "success")
+          setTimeout(() => {
+            
+              loadSecondStockParallel(products);
+            }, 0);
           /* // Añadir eventos a los botones de acción - only add once
           $(document).off("click", ".edit-product").on("click", ".edit-product", function () {
             
@@ -238,7 +348,7 @@ console.log("Filter values:", {
             editProduct(productCode)
           })
 */
-          $(document).off("click", ".delete-product").on("click", ".delete-product", function () {
+         /*  $(document).off("click", ".delete-product").on("click", ".delete-product", function () {
 
             const productCode = $(this).data("id")
 
@@ -316,7 +426,7 @@ console.log("Filter values:", {
                   configModal.hide();
                 });
               });
-          });
+          }); */
 
         }
         //--------------
@@ -365,8 +475,16 @@ console.log("Filter values:", {
     showToast("Error", "No se pudieron cargar los productos: " + error.message, "error")
   }
 }
+
 // Function that actually loads the product data
 async function loadProductsData() {
+  
+  if(companyName == ""){
+    const userLoggedIn = await fetchData("GetLoggedUserId");
+    companyName= userLoggedIn.companyName
+    username = userLoggedIn.username
+  }
+
 
 
   // Obtener valores de filtros
@@ -428,21 +546,22 @@ async function loadProductsData() {
 
           // Crear botones de acción
           //const editButton = `<button class="btn btn-sm btn-primary edit-product" data-id="${product.ProductCode}"><i class="fas fa-edit"></i></button>`
-          const deleteButton = `<button class="btn btn-sm btn-danger ms-1 delete-product" data-id="${product.ProductCode}"><i class="fas fa-trash"></i></button>`
-          const recibirInventario = `<button class="btn btn-sm btn-secondary ms-1 receive-inventory" data-id="${product.ProductCode}" data-name="${product.ProductName}" data-barcode="${product.BarCode}"><i class="fas fa-square-plus"></i></button>`
-          const tagButton = `<button class="btn btn-sm btn-secondary ms-1 tag-product" data-id="${product.ProductCode}" data-name="${product.ProductName}" data-barcode="${product.BarCode}"><i class="fas fa-tag"></i></button>`
-          const pre_ordenButton = `<button class="btn btn-sm btn-secondary ms-1 pre-orden" data-id="${product.ProductCode}" data-id="${product.ProductCode}" data-name="${product.ProductName}" data-barcode="${product.BarCode}">Pre-Orden</button>`
+          // const deleteButton = `<button class="btn btn-sm btn-danger ms-1 delete-product" data-id="${product.ProductCode}"><i class="fas fa-trash"></i></button>`
+          // const recibirInventario = `<button class="btn btn-sm btn-secondary ms-1 receive-inventory" data-id="${product.ProductCode}" data-name="${product.ProductName}" data-barcode="${product.BarCode}"><i class="fas fa-square-plus"></i></button>`
+          // const tagButton = `<button class="btn btn-sm btn-secondary ms-1 tag-product" data-id="${product.ProductCode}" data-name="${product.ProductName}" data-barcode="${product.BarCode}"><i class="fas fa-tag"></i></button>`
+          // const pre_ordenButton = `<button class="btn btn-sm btn-secondary ms-1 pre-orden" data-id="${product.ProductCode}" data-id="${product.ProductCode}" data-name="${product.ProductName}" data-barcode="${product.BarCode}">Pre-Orden</button>`
           return [
             product.ProductCode || "",
             product.ProductName || "",
             product.BarCode || "",
             formatCurrency(product.Price || 0),
             formatCurrency(product.Cost || 0),
-            safeToLocaleString(product.CurrentStock),
+            stockToHtml(
+            safeToLocaleString(product.CurrentStock),companyName)+"<br>" +"Cargando...",
             departmentName, // Mostrar el nombre del departamento en lugar del ID
-            categoryName, // Mostrar el nombre de la categoría en lugar del ID
-            recibirInventario + tagButton + deleteButton, //+ editButton
-            pre_ordenButton
+            categoryName // Mostrar el nombre de la categoría en lugar del ID
+            //recibirInventario + tagButton + deleteButton, //+ editButton
+            //pre_ordenButton
           ]
         })
 
@@ -482,11 +601,11 @@ async function loadProductsData() {
             { title: "Código de Barras", data: 2, width: "10%",className: "editable" },
             { title: "Precio", data: 3, width: "8%",className: "editable" },
             { title: "Costo", data: 4, width: "8%", className: "editable" },
-            { title: "Stock", data: 5, width: "7%",  },
+            { title: "Stock", data: 5, width: "20%",  },
             { title: "Departamento", data: 6, width: "12%" },
             { title: "Categoría", data: 7, width: "12%" },
-            { title: "Acciones", data: 8, width: "10%", className: "text-center", orderable: false },
-            { title: "Movimiento", data: 9, width: "8%", className: "text-center", orderable: false },
+            //{ title: "Acciones", data: 8, width: "10%", className: "text-center", orderable: false },
+            //{ title: "Movimiento", data: 9, width: "8%", className: "text-center", orderable: false },
           ]
 
           // Inicializar o actualizar la tabla
@@ -505,7 +624,7 @@ async function loadProductsData() {
               autoWidth: false, // Disable auto width calculation
               columnDefs: [
                 { responsivePriority: 1, targets: [0, 1] }, // These columns are most important
-                { responsivePriority: 2, targets: [3, 8] }, // These columns are next important
+                { responsivePriority: 2, targets: [3, 7] }, // These columns are next important
               ],
               dom:
                 '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
@@ -516,6 +635,9 @@ async function loadProductsData() {
                 $(this).closest(".dataTables_wrapper").addClass("card-body p-0")
               },
             })
+            setTimeout(() => {
+              loadSecondStockParallel(products);
+            }, 0);
 
             /* // Añadir eventos a los botones de acción - only add once
             $(document).off("click", ".edit-product").on("click", ".edit-product", function () {
@@ -525,7 +647,7 @@ async function loadProductsData() {
               editProduct(productCode)
             })
  */
-            $(document).off("click", ".delete-product").on("click", ".delete-product", function () {
+           /*  $(document).off("click", ".delete-product").on("click", ".delete-product", function () {
               
               const productCode = $(this).data("id")
               
@@ -603,7 +725,7 @@ async function loadProductsData() {
                 configModal.hide();
               });
               });
-            });
+            }); */
 
           }
           //--------------
@@ -640,7 +762,7 @@ $('#productsMaintenanceTable tbody').on('click', 'td.editable', function (event)
       }
     }
     catch(error){
-      clearTimeout(timeoutId) // Clear the timeout
+      
       console.error("Error cargando productos:", error)
       showToast("Error", "No se pudieron cargar los productos: " + error.message, "error")
     }
@@ -1488,7 +1610,6 @@ function saveProduct(event) {
 // Function to initialize the product maintenance section
 async function initProductMaintenance() {
   
-
   // Load initial data - this will load departments, categories, and then products in sequence
   await loadProducts()
 

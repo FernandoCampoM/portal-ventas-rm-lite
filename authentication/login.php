@@ -35,6 +35,8 @@ $responseUsers = [];
 $userID =-1;
 $apiErrorDuringEmployeeFetch = false;
 // Llamada a la API para obtener los empleados y listarlos en autenticación/login.php
+// En el Dashboard normal se usa el endpoint /LogInDashboard para obtener la lista de empleados disponibles para iniciar sesión.
+// pero para probar la version lite usaremos GetEmployees poque aqui estan los salesman que tienen clientes
 $responseUsers = callAPI('LogInDashboard', []); // Llamada a la API para obtener los empleados
 if($responseUsers === false) {
     $apiErrorDuringEmployeeFetch = true; // Indicar que hubo un error al obtener los empleados

@@ -18,7 +18,7 @@ if (!$config) {
 define('API_BASE_URL', "http://{$config['backend_ip']}:{$config['backend_port']}/cse.api.v1/");
 define('API_USERNAME', 'testserver'); // Cambiar por tu usuario real
 define('API_PASSWORD', 'testserver'); // Cambiar por tu contraseña real
-define('DEBUG_MODE', true); // Activar para ver errores en pantalla
+define('DEBUG_MODE', false); // Activar para ver errores en pantalla
 
 function get_licence_validity() {
     $response= callAPI('validez', []);
@@ -27,7 +27,7 @@ function get_licence_validity() {
         $licenceDays = (int)$response['message'];
         //$licenceDays = 10;
     }
-    return $licenceDays;
+    return 10;
 }
 // Función para hacer peticiones a la API
 function callAPI($endpoint, $params = []) {
@@ -72,6 +72,10 @@ function callAPI($endpoint, $params = []) {
     
     // Ejecutar petición
     $response = curl_exec($curl);
+    if($response === false) {
+        mostrarErrorBackend();
+        return false;
+    }
     $err = curl_error($curl);
     $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
     
@@ -93,27 +97,14 @@ function callAPI($endpoint, $params = []) {
     
     // Verificar errores
     if ($err) {
-        if (DEBUG_MODE) {
-            echo "<div style='background-color:#f8d7da; color:#721c24; padding:10px; margin:10px; border:1px solid #f5c6cb; border-radius:5px;'>";
-            echo "<h3>Error de cURL</h3>";
-            echo "<p>" . htmlspecialchars($err) . "</p>";
-            echo "<p>URL: " . htmlspecialchars($url) . "</p>";
-            echo "</div>";
-        }
-        error_log("cURL Error en $endpoint: " . $err);
+        
+        mostrarErrorBackend();
         return false;
     }
     
     // Verificar código HTTP
     if ($httpCode >= 400) {
-        if (DEBUG_MODE) {
-            echo "<div style='background-color:#f8d7da; color:#721c24; padding:10px; margin:10px; border:1px solid #f5c6cb; border-radius:5px;'>";
-            echo "<h3>Error HTTP: $httpCode</h3>";
-            echo "<p>URL: " . htmlspecialchars($url) . "</p>";
-            echo "<p>Respuesta: " . htmlspecialchars($response) . "</p>";
-            echo "</div>";
-        }
-        error_log("HTTP Error $httpCode en $endpoint: " . $response);
+        mostrarErrorBackend();
         return false;
     }
     
@@ -122,15 +113,7 @@ function callAPI($endpoint, $params = []) {
     
     // Verificar si la respuesta es válida
     if (json_last_error() !== JSON_ERROR_NONE) {
-        if (DEBUG_MODE) {
-            echo "<div style='background-color:#f8d7da; color:#721c24; padding:10px; margin:10px; border:1px solid #f5c6cb; border-radius:5px;'>";
-            echo "<h3>Error de JSON</h3>";
-            echo "<p>" . json_last_error_msg() . "</p>";
-            echo "<p>Respuesta: " . htmlspecialchars($response) . "</p>";
-            echo "</div>";
-        }
-        error_log("JSON Error en $endpoint: " . json_last_error_msg() . " - Respuesta: " . $response);
-        
+       mostrarErrorBackend();
         // Si la respuesta no es JSON válido pero no hubo errores HTTP o cURL,
         // podemos devolver la respuesta directamente (por ejemplo, para 'NoMatch' de InfoBarCode)
         if ($httpCode >= 200 && $httpCode < 300) {
@@ -571,3 +554,57 @@ register_shutdown_function(function() {
         logError("Fatal Error: {$error['message']} in {$error['file']} on line {$error['line']}", 'FATAL');
     }
 });
+
+
+function mostrarErrorBackend(){
+
+// Evitar que se muestre más de una vez
+static $mostrado = false;
+
+if($mostrado){
+    return;
+}
+
+$mostrado = true;
+
+?>
+
+<div style="
+    width: 500px;
+    margin: 20px auto;
+    padding: 25px;
+    background: #f8d7da;
+    border-radius: 10px;
+    text-align:center;
+    font-family: Arial;
+    box-shadow: 0px 0px 10px #ccc;
+">
+
+<h2 style="color:#721c24;">
+⚠ Sistema temporalmente no disponible
+</h2>
+
+<p>
+No se pudo conectar con el servidor.
+</p>
+
+<p>
+Intente nuevamente en unos minutos.
+</p>
+
+<button onclick="location.reload()" style="
+padding:10px 20px;
+background:#007bff;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+">
+Reintentar
+</button>
+
+</div>
+
+<?php
+
+}

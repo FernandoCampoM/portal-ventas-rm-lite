@@ -8,7 +8,7 @@ function get_configBackend() {
     return null;
 }
 
-function save_configBackend($backend_ip, $backend_port) {
+function save_configBackend($backend_ip, $backend_port, $extra_backends = []) {
     $file_path = __DIR__ . '/backend_config.json';
 
     // 1. Leer y 2. Decodificar
@@ -22,7 +22,8 @@ function save_configBackend($backend_ip, $backend_port) {
     // 3. Crear los nuevos datos y Combinar (Merge)
     $new_data = [
         'backend_ip' => $backend_ip,
-        'backend_port' => $backend_port
+        'backend_port' => $backend_port,
+        'extra_backends' => $extra_backends
     ];
     
     $merged_config = array_merge($existing_config, $new_data);

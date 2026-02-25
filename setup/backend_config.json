@@ -1,5 +1,12 @@
 {
     "backend_ip": "localhost",
-    "backend_port": "8082",
-    "inventoryMonthsOfCover": "1.35"
+    "backend_port": "8180",
+    "inventoryMonthsOfCover": "1.35",
+    "extra_backends": [
+        {
+            "name": "Advance Electric Corp",
+            "ip": "localhost",
+            "port": "8180"
+        }
+    ]
 }

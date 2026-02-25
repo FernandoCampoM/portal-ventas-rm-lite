@@ -16,10 +16,12 @@ $configBackend = get_configBackend();
 // A partir de aquí, puedes acceder a los datos de la sesión:
 $userID = -1;
 $username = "";
+$companyName = "";
 // 1. Verificar si el usuario ha iniciado sesión
 if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true) {
     $userID = $_SESSION['UserID'];
     $username = $_SESSION['Username'];
+    $companyName = $_SESSION['InfoCompany']['Name'] ?? 'Tienda 1';
 }
 
 
@@ -108,7 +110,7 @@ try {
         if($endpoint === 'GetLoggedUserId') {
             
             header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'userId' => $userID]);
+            echo json_encode(['success' => true, 'userId' => $userID, 'username' => $username, 'companyName' => $companyName]);
             exit;
             
         }

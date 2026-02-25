@@ -112,20 +112,6 @@ $phpIni = "$InstallPath\php\php.ini"
 
 # Reiniciar para aplicar
 Start-Service "Apache2.4"
-# ===============================
-# EJECUTAR INSTALL.BAT
-# ===============================
-$batPath = "$InstallPath\htdocs\RMPAY-CALENDARSERVICE\install.bat"
 
-if (Test-Path $batPath) {
-    Write-Host "Ejecutando install.bat..." -ForegroundColor Cyan
-    
-    Start-Process -FilePath $batPath -WorkingDirectory (Split-Path $batPath) -Wait
-    
-    Write-Host "install.bat ejecutado correctamente." -ForegroundColor Green
-}
-else {
-    Write-Host "No se encontró install.bat en la ruta esperada." -ForegroundColor Red
-}
 Write-Host "INSTALACION OK" -ForegroundColor Green
 Write-Host "URL: http://localhost" -ForegroundColor White
