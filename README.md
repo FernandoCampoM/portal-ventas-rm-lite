@@ -35,23 +35,23 @@ Abra PowerShell **como Administrador**.
 Ubíquese en la carpeta del proyecto.
 
 Ejemplo:
-
+```powershell
 cd C:\xampp\htdocs\dashboard-rm-lite
 
 ### Paso 4
 
 Ejecute el instalador:
-
+```powershell
 install.ps1
 
 Si PowerShell bloquea la ejecución:
-
+```powershell
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 Luego ejecute nuevamente:
 
+```powershell
 .\install.ps1
-
 ---
 
 ## Primer Inicio
@@ -66,15 +66,38 @@ Configurar el Backend principal.
 
 ## Estructura
 
+```
 dashboard-rm-lite/
-
-authentication/
-config/
-css/
-js/
-images/
-install.ps1
-index.php
+│
+├── authentication/
+├── css/
+├── images/
+├── js/
+├── logs/
+├── setup/
+├── view/
+│
+├── .gitattributes
+├── .gitignore
+├── api-client.js
+├── api_debug.php
+├── api_proxy.php
+├── check_api.php
+├── config.php
+├── config_check.php
+├── dashboard.html
+├── dashboard.php
+├── debug.php
+├── export_products.php
+├── index.php
+├── install.ps1
+├── maintenance-sections.html
+├── modalReceiveInventory.php
+├── product_search.php
+├── README.md
+├── scripts.php
+├── test_api.php
+└── test_clientes.php
 
 ---
 
