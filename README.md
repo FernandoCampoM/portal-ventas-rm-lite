@@ -37,21 +37,22 @@ Ubíquese en la carpeta del proyecto.
 Ejemplo:
 ```powershell
 cd C:\xampp\htdocs\dashboard-rm-lite
-
+```
 ### Paso 4
 
 Ejecute el instalador:
 ```powershell
 install.ps1
-
+```
 Si PowerShell bloquea la ejecución:
 ```powershell
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-
+```
 Luego ejecute nuevamente:
 
 ```powershell
 .\install.ps1
+```
 ---
 
 ## Primer Inicio
@@ -98,7 +99,7 @@ dashboard-rm-lite/
 ├── scripts.php
 ├── test_api.php
 └── test_clientes.php
-
+```
 ---
 
 ## Configuración
