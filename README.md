@@ -1,28 +1,94 @@
-# RMPAY Dashboard
+# PORTAL DE VENTAS RM LITE
 
-Este repositorio contiene el dashboard para la plataforma RMPAY.
+El **Portal de Ventas RM Lite** es una versión ligera del sistema Retail Manager diseñada para la gestión de clientes y productos.
+
+Esta versión Lite permite conectarse a uno o varios servidores backend para consultar información como productos y su stock de forma rápida y eficiente.
+
+---
+
+## Características
+
+- Consulta de productos
+- Consulta de Clientes
+- Soporte para múltiples backends
+- Interfaz web moderna y responsiva
+- Sistema rápido y optimizado
 
 ---
 
-## 🚀 Ejecución del Servicio del Calendario (Windows)
-**Nota:** La Ejecucion de este servicio es necesario para el correcto fucnionamiento del Dashboard
-Para poner en marcha el servicio de calendario en tu sistema, sigue estos sencillos pasos:
+## Requisitos
 
-1.  **Navega a la carpeta de instalación:**
-    Abre tu explorador de archivos o la línea de comandos y dirígete al directorio principal del servicio:
-
-    ```bash
-    cd RMPAY-CALENDARSERVICE
-    ```
-
-2.  **Instala y Ejecuta el Servicio:**
-    Ejecuta el script por lotes (`.bat`) para registrar y arrancar el servicio de calendario en Windows.
-
-    ```bash
-    .\install.bat
-    ```
-
-**Nota:** Este archivo `install.bat` está configurado para usar **WinSW** y el **JDK** ubicado en el directorio `%BASE%` (la misma carpeta del servicio, no borrar ningun de esos archivos).
+- Windows 
+- PowerShell habilitado
 
 ---
+
+## Instalación
+
+### Paso 1
+Descargue o clone el repositorio.
+
+### Paso 2
+Abra PowerShell **como Administrador**.
+
+### Paso 3
+Ubíquese en la carpeta del proyecto.
+
+Ejemplo:
+
+cd C:\xampp\htdocs\dashboard-rm-lite
+
+### Paso 4
+
+Ejecute el instalador:
+
+install.ps1
+
+Si PowerShell bloquea la ejecución:
+
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+Luego ejecute nuevamente:
+
+.\install.ps1
+
+---
+
+## Primer Inicio
+
+Abrir en el navegador:
+
+http://localhost
+
+Configurar el Backend principal.
+
+---
+
+## Estructura
+
+dashboard-rm-lite/
+
+authentication/
+config/
+css/
+js/
+images/
+install.ps1
+index.php
+
+---
+
+## Configuración
+
+El sistema permite configurar:
+
+- Backend principal
+- Backends adicionales
+- Parámetros de inventario
+
+---
+
+## Autor
+
+Fernando Campo M
 
