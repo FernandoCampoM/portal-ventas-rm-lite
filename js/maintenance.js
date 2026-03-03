@@ -55,50 +55,97 @@ function updateStockCell(productCode){
   table.draw(false);
 
 }
+function updateTableStocksExtreme(){
+
+  const table = $('#productsMaintenanceTable').DataTable();
+
+  const rows = table.rows().data();
+
+  const companyName =
+    stockBackend2Cache["companyName"] || "";
+
+  console.log("Actualizando tabla EXTREMO 2 STOCKS...");
+
+  for(let i=0;i<rows.length;i++){
+
+    const row = rows[i];
+
+    const productCode = row[0];
+
+    // 🔹 Mantener stock principal
+    const mainStock =
+      row[5].split("<br>")[0];
+
+    // 🔹 Obtener stock backend 2
+    const secondStock =
+      stockBackend2Cache[productCode] ?? 0;
+
+    // 🔹 Actualizar celda
+    row[5] =
+      mainStock +
+      "<br>" +
+      stockToHtml(
+        safeToLocaleString(secondStock),
+        companyName
+      );
+
+  }
+
+  // 🔥 UNA sola actualización
+  table.rows().invalidate();
+
+  table.draw(false);
+
+  console.log("Tabla EXTREMA lista");
+
+}
 async function loadSecondStockParallel(products) {
 
   try {
 
-    // Si ya tenemos datos en cache no volver a consultar
-    if (Object.keys(stockBackend2Cache).length > 0) {
+    // Cache ya cargado
+    if (Object.keys(stockBackend2Cache).length > 1) {
 
-      products.forEach(p => updateStockCell(p.ProductCode));
+      updateTableStocksExtreme();
       return;
+
     }
 
-    // 🔹 UNA SOLA CONSULTA
-    const data = await fetchDataUseURL(extraBackends[0].ip+":"+extraBackends[0].port,"GetAllProducts");
-    const companyName = await getCompanyNameFromApi(extraBackends[0].ip+":"+extraBackends[0].port);
-    stockBackend2Cache["companyName"] = companyName;
-    /*
-    Ejemplo esperado:
+    const baseUrl =
+      extraBackends[0].ip +
+      ":" +
+      extraBackends[0].port;
 
-    [
-      { ProductCode: "P001", Stock: 10 },
-      { ProductCode: "P002", Stock: 5 },
-      { ProductCode: "P003", Stock: 22 }
-    ]
-    */
+    // 🔥 Paralelo REAL
+    const [data, companyName] =
+      await Promise.all([
+        fetchDataUseURL(baseUrl,"GetAllProducts"),
+        getCompanyNameFromApi(baseUrl)
+      ]);
 
-    // Guardar en cache
-    data.forEach(item => {
+    stockBackend2Cache["companyName"] =
+      companyName;
 
-      stockBackend2Cache[item.ProductCode] = item.CurrentStock || 0;
+    // 🔥 Cache ultra rápido
+    for(let i=0;i<data.length;i++){
 
-    });
+      const item = data[i];
 
-     
-    // Actualizar tabla
-    products.forEach(product => {
-      
-      updateStockCell(product.ProductCode);
+      stockBackend2Cache[item.ProductCode] =
+        item.CurrentStock || 0;
 
-    });
-    
+    }
+
+    // 🔥 UNA sola actualización
+    updateTableStocksExtreme();
+
   }
   catch(e){
 
-    console.error("Error cargando stocks backend2:", e);
+    console.error(
+      "Error cargando stocks backend2:",
+      e
+    );
 
   }
 
@@ -612,6 +659,9 @@ async function loadProductsData() {
           if ($.fn.DataTable.isDataTable("#productsMaintenanceTable")) {
             
             $("#productsMaintenanceTable").DataTable().clear().rows.add(tableData).draw()
+             setTimeout(() => {
+              loadSecondStockParallel(products);
+            }, 0);
           } else {
             
             productsMaintenanceTable = $("#productsMaintenanceTable").DataTable({

@@ -154,10 +154,10 @@ $username = $_SESSION['Username'];
                     <ul class="nav flex-column">
                         <!-- Añadir después de la sección de inventario en el sidebar -->
                         <li class="nav-item">
-                            <a class="nav-link active" href="#" id="maintenance-link" data-bs-toggle="collapse"
+                            <a class="nav-link active"  id="maintenance-link" data-bs-toggle="collapse"
                                 data-bs-target="#maintenance-collapse" aria-expanded="false"
                                 aria-controls="maintenance-collapse" data-bs-toggle="tooltip" data-bs-placement="right"
-                                title="Mantenimiento" data-section="products-maintenance-section">
+                                title="Mantenimiento" >
                                 <i class="fas fa-cogs"></i>
                                 <span>Mantenimiento</span>
                             </a>
@@ -2498,6 +2498,7 @@ return dataTableInstance;
                 
                 const sidebarTest = document.getElementById('sidebarTest');
                 sidebarTest.style.position = 'static';
+                
             }catch(error){
                 console.error('Error al fijar la posición de la barra lateral:', error);
             }
